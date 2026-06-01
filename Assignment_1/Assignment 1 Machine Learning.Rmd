@@ -1,0 +1,60 @@
+---
+title: "Assignment 1 Dataset from web"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+date: '2026-06-01'
+---
+
+```{r}
+data <- read.csv("cc_institution_grads.csv")
+```
+
+
+# Dataset Source:
+# Kaggle - Boost Student Success with College Completion Data
+# https://www.kaggle.com/datasets/thedevastator/boost-student-success-with-college-completion-da
+
+## Quantitative Variable
+
+```{r}
+summary(data$grad_150_rate)
+```
+
+## Qualitative Variable: Gender
+
+```{r}
+table(data$gender, data$race)
+```
+
+
+## Variable Transformation
+I transformed the quantitative variable `grad_150_rate` into a categorical variable called `completion_level`. Institutions with a graduation rate of 50% or higher were classified as "High Completion" and those below 50% were classified as "Low Completion".
+
+```{r}
+data$completion_level <- ifelse(data$grad_150_rate >= 50,
+                                "High Completion",
+                                "Low Completion")
+
+table(data$completion_level)
+```
+
+## Histogram
+
+```{r}
+hist(data$grad_150_rate,
+     main = "Distribution of 150% Graduation Rates",
+     xlab = "Graduation Rate")
+```
+
+## Scatterplot
+
+```{r}
+plot(data$grad_100_rate,
+     data$grad_150_rate,
+     main = "100% vs 150% Graduation Rate",
+     xlab = "100% Graduation Rate",
+     ylab = "150% Graduation Rate")
+```
+
