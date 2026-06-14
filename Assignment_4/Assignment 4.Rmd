@@ -1,0 +1,130 @@
+---
+title: "Assignment 4"
+output: pdf_document
+date: "2026-06-14"
+---
+
+```{r}
+
+library(flexclust)
+library(factoextra)
+library(tidyverse)
+
+Pharmaceuticals<- read.csv("~/Desktop/Pharmaceuticals.csv")
+
+my_data<- Pharmaceuticals
+  
+```
+
+
+```{r}
+
+names(my_data)
+
+```
+
+
+
+## Part A
+
+```{r}
+
+pharma_num<- my_data[, 3:11]
+
+pharma_scaled<- scale(pharma_num)
+
+```
+
+```{r}
+
+fviz_nbclust(pharma_scaled, kmeans, method = "wss")
+
+```
+
+```{r}
+
+fviz_nbclust(pharma_scaled, kmeans, method = "silhouette")
+
+```
+
+```{r}
+
+set.seed(123)
+
+kmeans_pharma <- kmeans(
+  pharma_scaled,
+  centers = 2,
+  nstart = 25
+)
+
+kmeans_pharma
+
+```
+
+The numerical variables Market_Cap, Beta, PE_Ratio, ROE, ROA, Asset_Turnover, Leverage, Rev_Growth, and Net_Profit_Margin were used for clustering. Because these variables are measured on different scales, the data were standardized using z-score scaling. Equal weights were assigned to all variables after standardization. The elbow method and silhouette method were used to determine the appropriate number of clusters. Both methods suggested that two clusters provided the best separation of the firms. Therefore, k-means clustering was performed using two clusters. A seed value of 123 was used for reproducibility and nstart = 25 was used to improve cluster stability.
+
+## Part B
+
+```{r}
+
+my_data$Cluster <- as.factor(kmeans_pharma$cluster)
+
+cluster_summary <- aggregate(
+  pharma_num,
+  by = list(Cluster = my_data$Cluster),
+  FUN = mean
+)
+
+cluster_summary
+
+```
+
+Cluster 1 consists of large, established pharmaceutical firms. These companies have substantially higher market capitalization, profitability (ROE and ROA), and asset turnover than firms in Cluster 2. They also have lower beta and leverage, suggesting lower risk and more stable financial performance. In addition, Cluster 1 has a considerably higher net profit margin (20.17% versus 10.77%). However, their revenue growth is lower than firms in Cluster 2, indicating that they may be mature companies with slower growth prospects.
+
+Cluster 2 consists of smaller pharmaceutical firms with higher expected revenue growth. These firms have higher beta, leverage, and P/E ratios, indicating greater risk and stronger growth expectations. However, they generate lower returns on equity and assets, lower asset turnover, and lower net profit margins than firms in Cluster 1, suggesting they are less profitable and less operationally efficient.
+
+## Part C
+
+```{r}
+
+table(my_data$Cluster, my_data$Median_Recommendation)
+
+```
+```{r}
+
+table(my_data$Cluster, my_data$Location)
+
+```
+
+```{r}
+
+table(my_data$Cluster, my_data$Exchange)
+
+```
+Some patterns are present in the variables that were not used to form the clusters. With respect to analyst recommendations, Cluster 1 contains more firms with Hold recommendations, while Cluster 2 contains slightly more Buy and Strong Buy recommendations. This is consistent with Cluster 2's higher expected revenue growth despite its lower profitability.
+
+With respect to location, Cluster 1 consists entirely of firms headquartered in the United States, United Kingdom, and Switzerland, while Cluster 2 contains firms from a more diverse set of countries, including Canada, France, Germany, and Ireland. This suggests that the smaller, higher-growth firms are more geographically diverse.
+
+With respect to stock exchange, all firms in Cluster 1 are listed on the NYSE. In contrast, Cluster 2 contains firms listed on the NYSE, NASDAQ, and AMEX. Therefore, Cluster 2 exhibits greater diversity in exchange listings, while Cluster 1 is concentrated on a single exchange.
+
+## Part D
+
+Cluster 1: Large Established Pharmaceutical Firms
+
+This cluster contains firms with large market capitalizations, high profitability, high asset efficiency, low leverage, and relatively stable financial performance. Although growth rates are lower, these firms appear to be mature and financially strong organizations.
+
+Cluster 2: Smaller High-Growth Pharmaceutical Firms
+
+This cluster contains firms with smaller market capitalizations, higher expected revenue growth, higher leverage, and greater market risk. These companies appear to be growth-oriented firms with stronger future growth expectations but lower current profitability.
+
+```{r}
+
+fviz_cluster(kmeans_pharma, data = pharma_scaled)
+
+```
+
+
+
+
+
+
