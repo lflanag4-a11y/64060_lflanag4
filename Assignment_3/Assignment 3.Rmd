@@ -1,0 +1,161 @@
+---
+title: "Assignment 3"
+output: pdf_document
+date: "2026-06-11"
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(caret)
+library(e1071)
+
+UniversalBank<- read.csv("UniversalBank.csv")
+
+my_data<- UniversalBank
+
+```
+
+
+```{r}
+colnames(my_data)
+
+```
+
+## Part A
+
+```{r}
+
+set.seed(123)
+
+train_index<- createDataPartition(my_data$Personal.Loan, p = 0.6, list = FALSE)
+
+training_data<- my_data[train_index,]
+validation_data<- my_data[-train_index,]
+
+```
+
+```{r}
+
+pivot_table<- ftable(CreditCard = training_data$CreditCard, Personal.Loan = training_data$Personal.Loan, Online = training_data$Online)
+
+pivot_table
+
+```
+Row variables: CreditCard and Personal.Loan
+Column variables: Online
+Cell values represent the number of customers in each category combination. 
+
+
+## Part B
+
+```{r}
+
+57/(475 + 57)
+
+```
+
+P(Personal.Loan = 1 | Online = 1, CreditCard = 1)
+Numerator: 57 customers had a credit card, used online banking, and accepted a personal loan.
+Denominator: 532 customers had a credit card and used online banking. 
+The probability that a customer who owns a bank credit card and is actively using online banking services will acceptr the loan offer is 57/532 = 0.1071, or 10.71%
+
+## Part C
+
+```{r}
+
+online_pivot<- table(Loan = training_data$Personal.Loan, Online = training_data$Online)
+
+online_pivot
+
+```
+
+```{r}
+
+creditcard_pivot<- table(Loan = training_data$Personal.Loan, CreditCard = training_data$CreditCard)
+
+creditcard_pivot
+
+```
+
+## Part D
+
+```{r}
+
+91 / (187 + 91)
+
+179 / (99+179)
+
+278 / 3000
+
+792 / (1930 + 792)
+
+1620 / (1102 + 1620)
+
+2722 / 3000
+
+
+```
+P(CC = 1 | Loan = 1) is 0.3273 or 32.73%
+P(Online = 1 | Loan = 1) is 0.6439 or 64.39%
+P(Loan = 1) is 0.0927 or 9.27%
+P(CC = 1 | Loan = 0) is 0.291 or 29.10%
+P(Online = 1 | Loan = 0) is 0.5952 or 59.52%
+P(Loan = 0) is 0.9073 or 90.73%
+
+## Part E
+
+```{r}
+
+loan1<- (91 / (187 + 91)) * (179 / (99 + 179)) * (278 / 3000)
+
+loan0<- (792/(1930 + 792)) * (1620 / (1102 + 1620)) * (2722 / 3000)
+
+loan1 / (loan1 + loan0)
+
+```
+
+
+P(Loan = 1 | CC = 1, Online = 1) is 0.1106 or 11.06%
+
+## Part F
+
+The Naive Bayes probability gave 11.06% while the probability obtained from the pivot table in Part B was 10.71%. Since the Naive Bayes estimate assumes independence between variables, the pivot table value is generally the more accurate estimate. It comes directly from the data without the independence assumption.
+
+## Part G
+
+The entries needed for computing P(Loan = 1 | CC = 1, Online = 1) are:
+P(CC = 1 | Loan = 1)
+P(Online = 1 | Loan = 1)
+P(Loan = 1)
+P(CC = 1 | Loan + 0)
+P(Online = 1 | Loan = 0)
+P(Loan = 0)
+
+These were obtained from the pivot tables created in Part C and were used in the Naive Bayes calculation in Part E.
+
+
+```{r}
+
+nb_model<- naiveBayes(Personal.Loan ~ CreditCard + Online, data = training_data)
+
+new_customer<- data.frame(CreditCard = 1, Online = 1)
+
+predict(nb_model, new_customer, type = "raw")
+
+```
+
+Running Naive Bayes on the data gave me 0.1157 or 11.57% for P(Loan = 1 | CC = 1, Online = 1), while the probability I obtained in Part E was 0.1106 or 11.06%. The two values are very close and only differ by 0.52 percentage points. This indicates that manual calculation and the Naive Bayes model produce consistent results.
+
+
+
+
+
+
+
+
+
+
+
+
+
