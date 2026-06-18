@@ -1,0 +1,253 @@
+---
+title: "Assignment 5"
+output:
+  pdf_document: default
+  html_document: default
+date: "2026-06-18"
+---
+
+```{r}
+
+library(stats)
+library(cluster)
+library(factoextra)
+
+```
+
+
+```{r}
+
+cereals<- read.csv("~/Desktop/Cereals.csv")
+
+na.omit(cereals)
+
+head(cereals)
+
+```
+
+```{r}
+
+cereals_num<- cereals[, sapply(cereals, is.numeric)]
+
+cereals_norm<- scale(cereals_num)
+
+```
+
+
+## Part 1
+
+```{r}
+
+d_cereals<- dist(cereals_norm, method = "euclidean")
+
+hc1<- hclust(d_cereals, method = "complete")
+
+plot(hc1, cex = 0.6, hang = -1)
+
+```
+
+```{r}
+
+hc_single<- agnes(cereals_norm, method = "single")
+
+hc_complete<- agnes(cereals_norm, method = "complete")
+
+hc_average<- agnes(cereals_norm, method = "average")
+
+hc_ward<- agnes(cereals_norm, method = "ward")
+
+```
+
+```{r}
+
+print(hc_single$ac)
+
+```
+
+```{r}
+
+print(hc_complete$ac)
+
+```
+
+```{r}
+
+print(hc_average$ac)
+
+```
+
+```{r}
+
+print(hc_ward$ac)
+
+```
+
+Since Ward clustering gave the highest AC (0.9046042), that is the best method. 
+
+
+## Part 2
+
+```{r}
+
+pltree(hc_ward, cex = 0.6, hang = -1, main = "Dendogram of agnes")
+
+rect.hclust(as.hclust(hc_ward), k = 4, border = 1:4)
+
+```
+
+Following the approach demonstrated in the lecture, the dendrogram was cut at a height that produced four distinct clusters. The four-cluster solution appears reasonable because the groups remain relatively separate before being merged at larger distances.
+
+
+## Part 3
+
+```{r}
+
+cluster_4<- cutree(as.hclust(hc_ward), k = 4)
+
+cereals$Cluster<- as.factor(cluster_4)
+
+table(cereals$Cluster)
+
+```
+
+```{r}
+
+cluster_summary<- aggregate(cereals_num, by = list(Cluster = cereals$Cluster), FUN = mean)
+
+cluster_summary
+
+```
+
+The four clusters show different nutritional profiles based on the normalized cereal measurements. To interpret the structure, I compared the mean values of the cereal variables within each cluster. 
+
+The four clusters exhibit distinct nutritional profiles. Cluster 1 contains cereals with the lowest average calories and the highest protein content, while also achieving the highest average consumer rating. Cluster 2 consists of higher-calorie cereals with relatively high fat and sugar content and lower ratings. Cluster 3 contains cereals with the lowest protein content, relatively high sugar levels, and the lowest average ratings. Cluster 4 represents a moderate group with average calorie levels, low fat content, lower sugar levels than Clusters 2 and 3, and higher ratings than those groups. These differences suggest that the clustering successfully separated cereals based on meaningful nutritional characteristics.
+
+```{r}
+
+set.seed(123)
+
+A_index<- sample(1:nrow(cereals_num), size = round(0.5 * nrow(cereals_num)))
+
+A<- cereals_num[A_index,]
+
+B<- cereals_num[-A_index,]
+
+```
+
+
+```{r}
+
+hc_A<- agnes(A, method = "ward")
+
+cluster_A<- cutree(as.hclust(hc_A), k = 4)
+
+table(cluster_A)
+
+```
+
+```{r}
+
+centroids_A<- aggregate(A, by = list(cluster_A), FUN = mean)
+
+centroids_A
+
+```
+
+```{r}
+
+centroid_values <- centroids_A[, -1]
+
+centroid_values
+
+```
+
+```{r}
+
+B_assigned <- apply(B, 1, function(record) {
+  distances <- apply(centroid_values, 1, function(center) {
+    sqrt(sum((record - center)^2))
+  })
+  
+  which.min(distances)
+})
+
+B_assigned
+
+```
+
+```{r}
+
+full_clusters <- cutree(as.hclust(hc_ward), k = 4)
+
+B_full_clusters <- full_clusters[-A_index]
+
+```
+
+```{r}
+
+unlist(B_assigned)
+
+```
+
+
+```{r}
+
+# Use the same normalized data for the full clustering and partitions
+set.seed(123)
+
+A_index <- sample(1:nrow(cereals_norm),
+                  size = round(0.5 * nrow(cereals_norm)))
+
+A <- cereals_norm[A_index, ]
+B <- cereals_norm[-A_index, ]
+
+# Cluster partition A
+hc_A <- agnes(A, method = "ward")
+cluster_A <- cutree(as.hclust(hc_A), k = 4)
+
+# Get centroids from A
+centroids_A <- aggregate(A,
+                         by = list(Cluster = cluster_A),
+                         FUN = mean)
+
+centroid_values <- as.matrix(centroids_A[, -1])
+
+# Assign B records to closest centroid
+B_assigned <- apply(B, 1, function(record) {
+
+  distances <- apply(centroid_values, 1, function(center) {
+    sqrt(sum((as.numeric(record) - as.numeric(center))^2))
+  })
+
+  which.min(distances)
+})
+
+B_assigned <- as.integer(B_assigned)
+
+# Full-data clusters
+full_clusters <- cutree(as.hclust(hc_ward), k = 4)
+full_clusters <- as.integer(full_clusters)
+
+B_full_clusters <- full_clusters[-A_index]
+
+# Compare assignments
+stability_table <- table(
+  B_assigned,
+  B_full_clusters
+)
+
+stability_table
+
+```
+
+To assess stability, the data were partitioned into two subsets. Ward's hierarchical clustering was applied to partition A, and cluster centroids were computed. Observations in partition B were assigned to the nearest centroid and compared with the cluster assignments obtained from the full dataset. The comparison table indicates that several groups of cereals were assigned to similar clusters across the two solutions, although some differences in cluster membership occurred. This suggests that the clustering solution exhibits a moderate level of stability.
+
+
+## Part 4
+
+The data should not necessarily be normalized if the goal is to identify a cluster of healthy cereals. Normalization gives each variable equal importance in the clustering process, but some variables are much more relevant to health than others. Variables such as calories, sugar, fat, sodium, fiber, and protein should receive greater emphasis because they directly reflect nutritional quality. Variables such as shelf location, consumer ratings, or display characteristics may be less relevant and could be excluded from the clustering analysis. Therefore, rather than normalizing and equally weighting all variables, the clustering should focus primarily on the nutritional attributes that define a healthy cereal.
+
+
+
+
+
